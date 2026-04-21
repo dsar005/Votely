@@ -1,65 +1,113 @@
-import Image from "next/image";
+"use client";
+
+import { AnimatePresence, motion } from "framer-motion";
+import { AppProvider, useApp } from "@/context/AppContext";
+import WelcomeScreen from "@/components/WelcomeScreen";
+import EligibilityChecker from "@/components/EligibilityChecker";
+import JourneyMap from "@/components/JourneyMap";
+import BallotInfo from "@/components/BallotInfo";
+import PracticeBallot from "@/components/PracticeBallot";
+import SmartChecklist from "@/components/SmartChecklist";
+import AIAssistant from "@/components/AIAssistant";
+
+const stepLabels: Record<string, string> = {
+  welcome: "Welcome",
+  eligibility: "Eligibility",
+  journey: "Journey",
+  ballot: "Ballot",
+  practice: "Practice",
+  checklist: "Checklist",
+  assistant: "AI Assistant",
+};
+
+function TopNav() {
+  const { currentStep, setCurrentStep, progress } = useApp();
+
+  if (currentStep === "welcome") return null;
+
+  const steps = ["eligibility", "journey", "ballot", "practice", "checklist", "assistant"] as const;
+
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0f]/80 backdrop-blur-xl border-b border-white/5">
+      {/* Progress bar */}
+      <div className="h-0.5 bg-white/5">
+        <motion.div
+          className="h-full bg-gradient-to-r from-violet-500 to-indigo-500"
+          initial={{ width: 0 }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.5 }}
+        />
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+        <button
+          onClick={() => setCurrentStep("welcome")}
+          className="text-lg font-bold bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent cursor-pointer"
+        >
+          Votely
+        </button>
+
+        <div className="hidden sm:flex items-center gap-1">
+          {steps.map((s) => (
+            <button
+              key={s}
+              onClick={() => setCurrentStep(s)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
+                currentStep === s
+                  ? "bg-violet-500/20 text-violet-300"
+                  : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
+              }`}
+            >
+              {stepLabels[s]}
+            </button>
+          ))}
+        </div>
+
+        <div className="text-xs font-mono text-slate-500">
+          {progress}%
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AppContent() {
+  const { currentStep } = useApp();
+
+  const screens: Record<string, React.ReactNode> = {
+    welcome: <WelcomeScreen />,
+    eligibility: <EligibilityChecker />,
+    journey: <JourneyMap />,
+    ballot: <BallotInfo />,
+    practice: <PracticeBallot />,
+    checklist: <SmartChecklist />,
+    assistant: <AIAssistant />,
+  };
+
+  return (
+    <>
+      <TopNav />
+      <div className={currentStep !== "welcome" ? "pt-12" : ""}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentStep}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.3 }}
+          >
+            {screens[currentStep]}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </>
+  );
+}
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <AppProvider>
+      <AppContent />
+    </AppProvider>
   );
 }
