@@ -1,9 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(
-  process.env.NEXT_PUBLIC_GEMINI_API_KEY || ""
-);
-
 export async function askGemini(
   question: string,
   context: {
@@ -12,26 +8,52 @@ export async function askGemini(
     eligibility?: string;
   }
 ): Promise<string> {
-  try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 
-    const systemPrompt = `You are Votely AI, a helpful and concise voting assistant. 
-You help users understand voting processes, eligibility, and election information.
-Keep responses SHORT (2-4 sentences max). Use bullet points when listing items.
-Be friendly but factual. If you're unsure, say so.
-${context.country ? `User's country/region: ${context.country}${context.region ? `, ${context.region}` : ""}` : ""}
-${context.eligibility ? `User's eligibility status: ${context.eligibility}` : ""}
-Do NOT provide legal advice. Always recommend checking official government sources.`;
-
-    const result = await model.generateContent([
-      { text: systemPrompt },
-      { text: question },
-    ]);
-
-    const response = result.response;
-    return response.text();
-  } catch (error) {
-    console.error("Gemini API error:", error);
-    return "I'm having trouble connecting right now. Please try again in a moment.";
+  if (!apiKey) {
+    console.error("Missing Gemini API Key");
+    return "AI is not configured right now.";
   }
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+
+  const prompt = `
+You are Votely AI, a concise voting assistant.
+
+Rules:
+- Keep answers SHORT (2-4 sentences)
+- Use bullet points if helpful
+- Be clear and factual
+- Do NOT give legal advice
+
+User Context:
+${context.country ? `Country: ${context.country}` : ""}
+${context.region ? `Region: ${context.region}` : ""}
+${context.eligibility ? `Eligibility: ${context.eligibility}` : ""}
+
+User Question:
+${question}
+`;
+
+  // 🔥 Try models in order (fallback system)
+  const models = ["gemini-1.5-flash", "gemini-1.5-pro"];
+
+  for (const modelName of models) {
+    try {
+      const model = genAI.getGenerativeModel({ model: modelName });
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+
+      if (text && text.trim() !== "") {
+        return text;
+      }
+    } catch (err) {
+      console.warn(`Model ${modelName} failed, trying next...`);
+    }
+  }
+
+  // 🧨 Final fallback (never break UI)
+  return "Sorry, I couldn't fetch an answer right now. Please try again.";
 }
